@@ -31,7 +31,9 @@ namespace CCompiler
                 var lexer = new CLexer(inputStream);
                 var tokenStream = new CommonTokenStream(lexer);
                 var cParser = new CParser(tokenStream);
-                var cilCodeGenerator = new CILCodeGenerator(_fileName, cParser.compilationUnit());
+                var cilCodeGenerator
+                    = new CILCodeGenerator(_fileName,
+                                           cParser.compilationUnit());
                 
                 cilCodeGenerator.Generate();
             }

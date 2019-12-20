@@ -27,7 +27,8 @@ namespace CCompiler.Codegen
 
         private CParser.CompilationUnitContext _compilationUnit;
 
-        public CILCodeGenerator(string fileName, CParser.CompilationUnitContext compilationUnit)
+        public CILCodeGenerator(string fileName,
+                                CParser.CompilationUnitContext compilationUnit)
         {
             _fileName = fileName;
             _programName = Path.GetFileNameWithoutExtension(_fileName);
@@ -56,8 +57,16 @@ namespace CCompiler.Codegen
             {
                 Name = _programName
             };
-            _assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Save);
-            _moduleBuilder = _assemblyBuilder.DefineDynamicModule(_programName, _programName + ".exe", false);
+
+            _assemblyBuilder = AppDomain
+                .CurrentDomain
+                .DefineDynamicAssembly(_assemblyName,
+                                       AssemblyBuilderAccess.Save);
+
+            _moduleBuilder = _assemblyBuilder
+                .DefineDynamicModule(_programName,
+                                     _programName + ".exe",
+                                     false);
         }
 
         protected void DefineProgramClass()
@@ -70,24 +79,30 @@ namespace CCompiler.Codegen
             _programClass.DefineDefaultConstructor(MethodAttributes.Public);
 
             _programConstructor = _programClass.DefineConstructor(
-                MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.HideBySig, 
+                MethodAttributes.Static
+                | MethodAttributes.Private
+                | MethodAttributes.HideBySig, 
                 CallingConventions.Standard, 
                 Type.EmptyTypes);
         }
 
-        protected void GenerateTranslationUnit(CParser.TranslationUnitContext translationUnit)
+        protected void GenerateTranslationUnit(
+            CParser.TranslationUnitContext translationUnit)
         {
             var localTranslationUnit = translationUnit;
-            var externalDeclarationStack = new Stack<CParser.ExternalDeclarationContext>();
+            var externalDeclarationStack
+                = new Stack<CParser.ExternalDeclarationContext>();
 
             while (localTranslationUnit.translationUnit() != null)
             {
-                externalDeclarationStack.Push(localTranslationUnit.externalDeclaration());
+                externalDeclarationStack
+                    .Push(localTranslationUnit.externalDeclaration());
                 
                 localTranslationUnit = localTranslationUnit.translationUnit();
             }
 
-            externalDeclarationStack.Push(localTranslationUnit.externalDeclaration());
+            externalDeclarationStack
+                .Push(localTranslationUnit.externalDeclaration());
 
             while (externalDeclarationStack.Count > 0)
             {
@@ -95,7 +110,8 @@ namespace CCompiler.Codegen
             }
         }
 
-        protected void GenerateExternalDeclaration(CParser.ExternalDeclarationContext externalDeclaration)
+        protected void GenerateExternalDeclaration(
+            CParser.ExternalDeclarationContext externalDeclaration)
         {
             var functionDefinition = externalDeclaration.functionDefinition();
             var declaration = externalDeclaration.declaration();
@@ -110,12 +126,14 @@ namespace CCompiler.Codegen
             }
         }
 
-        protected void GenerateFunctionDefinition(CParser.FunctionDefinitionContext functionDefinition)
+        protected void GenerateFunctionDefinition(
+            CParser.FunctionDefinitionContext functionDefinition)
         {
             ;
         }
 
-        protected void GenerateDeclaration(CParser.DeclarationContext declaration)
+        protected void GenerateDeclaration(
+            CParser.DeclarationContext declaration)
         {
             ;
         }
