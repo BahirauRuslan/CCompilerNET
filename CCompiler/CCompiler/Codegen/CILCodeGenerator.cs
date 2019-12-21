@@ -16,10 +16,10 @@ namespace CCompiler.Codegen
         public static readonly string EXE_EX = ".exe";
         public static readonly string DLL_EX = ".dll";
 
-        private bool _hasEntryPoint;
+        private readonly bool _hasEntryPoint;
 
-        private string _fileName;
-        private string _programName;
+        private readonly string _fileName;
+        private readonly string _programName;
 
         private AssemblyName _assemblyName;
         private AssemblyBuilder _assemblyBuilder;
