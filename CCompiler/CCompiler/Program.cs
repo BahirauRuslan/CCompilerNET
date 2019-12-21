@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Antlr4.Runtime;
 
 namespace CCompiler
@@ -16,7 +17,8 @@ namespace CCompiler
 
                 compiler.Compile();
             }
-            catch (ArgumentNullException e)
+            catch (Exception e)
+            when (e is ArgumentNullException || e is FileNotFoundException)
             {
                 Console.WriteLine(e.Message);
             }
@@ -30,7 +32,14 @@ namespace CCompiler
         {
             if (args == null || args.Length == 0)
             {
-                throw new ArgumentNullException("Arguments not found");
+                throw new ArgumentNullException(
+                    nameof(args), "arguments not found");
+            }
+
+            if (!File.Exists(args[0]))
+            {
+                throw new FileNotFoundException(
+                    $"File { args[0] } does not exists");
             }
         }
     }
