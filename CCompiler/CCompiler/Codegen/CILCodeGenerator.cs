@@ -13,6 +13,11 @@ namespace CCompiler.Codegen
 {
     public class CILCodeGenerator
     {
+        public static readonly string EXE_EX = ".exe";
+        public static readonly string DLL_EX = ".dll";
+
+        private bool _hasEntryPoint;
+
         private string _fileName;
         private string _programName;
 
@@ -27,12 +32,21 @@ namespace CCompiler.Codegen
 
         private CParser.CompilationUnitContext _compilationUnit;
 
+        public string ProgramFileName
+        {
+            get
+            {
+                return _programName + (_hasEntryPoint ? EXE_EX : DLL_EX);
+            }
+        }
+
         public CILCodeGenerator(string fileName,
                                 CParser.CompilationUnitContext compilationUnit)
         {
             _fileName = fileName;
             _programName = Path.GetFileNameWithoutExtension(_fileName);
             _compilationUnit = compilationUnit;
+            _hasEntryPoint = true;
         }
 
         public void Generate()
@@ -65,7 +79,7 @@ namespace CCompiler.Codegen
 
             _moduleBuilder = _assemblyBuilder
                 .DefineDynamicModule(_programName,
-                                     _programName + ".exe",
+                                     ProgramFileName,
                                      false);
         }
 
@@ -150,11 +164,11 @@ namespace CCompiler.Codegen
         {
             var saveFileError = false;
 
-            if (File.Exists(_programName + ".exe"))
+            if (File.Exists(ProgramFileName))
             {
                 try
                 {
-                    File.Delete(_programName + ".exe");
+                    File.Delete(ProgramFileName);
                 }
                 catch
                 {
@@ -164,7 +178,7 @@ namespace CCompiler.Codegen
 
             if (!saveFileError)
             {
-                _assemblyBuilder.Save(_programName + ".exe");
+                _assemblyBuilder.Save(ProgramFileName);
             }
         }
     }
