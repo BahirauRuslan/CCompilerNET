@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
@@ -13,8 +13,8 @@ namespace CCompiler.Codegen
 {
     public class CILCodeGenerator
     {
-        public static readonly string EXE_EX = ".exe";
-        public static readonly string DLL_EX = ".dll";
+        public static readonly string DOTEXE = ".exe";
+        public static readonly string DOTDLL = ".dll";
 
         private readonly bool _hasEntryPoint;
 
@@ -27,26 +27,27 @@ namespace CCompiler.Codegen
 
         private TypeBuilder _programClass;
         private ConstructorBuilder _programConstructor;
-        private MethodBuilder _entryPoint;
-        private ILGenerator _iLGenerator;
+        //// private MethodBuilder _entryPoint;
+        private ILGenerator _generatorIL;
 
         private CParser.CompilationUnitContext _compilationUnit;
 
-        public string ProgramFileName
-        {
-            get
-            {
-                return _programName + (_hasEntryPoint ? EXE_EX : DLL_EX);
-            }
-        }
-
-        public CILCodeGenerator(string fileName,
-                                CParser.CompilationUnitContext compilationUnit)
+        public CILCodeGenerator(
+            string fileName,
+            CParser.CompilationUnitContext compilationUnit)
         {
             _fileName = fileName;
             _programName = Path.GetFileNameWithoutExtension(_fileName);
             _compilationUnit = compilationUnit;
             _hasEntryPoint = true;
+        }
+
+        public string ProgramFileName
+        {
+            get
+            {
+                return _programName + (_hasEntryPoint ? DOTEXE : DOTDLL);
+            }
         }
 
         public void Generate()
@@ -74,13 +75,12 @@ namespace CCompiler.Codegen
 
             _assemblyBuilder = AppDomain
                 .CurrentDomain
-                .DefineDynamicAssembly(_assemblyName,
-                                       AssemblyBuilderAccess.Save);
+                .DefineDynamicAssembly(
+                _assemblyName,
+                AssemblyBuilderAccess.Save);
 
             _moduleBuilder = _assemblyBuilder
-                .DefineDynamicModule(_programName,
-                                     ProgramFileName,
-                                     false);
+                .DefineDynamicModule(_programName, ProgramFileName, false);
         }
 
         protected void DefineProgramClass()
@@ -143,20 +143,18 @@ namespace CCompiler.Codegen
         protected void GenerateFunctionDefinition(
             CParser.FunctionDefinitionContext functionDefinition)
         {
-            ;
         }
 
         protected void GenerateDeclaration(
             CParser.DeclarationContext declaration)
         {
-            ;
         }
 
         protected void EmitProgramClass()
         {
-            _iLGenerator = _programConstructor.GetILGenerator();
+            _generatorIL = _programConstructor.GetILGenerator();
 
-            _iLGenerator.Emit(OpCodes.Ret);
+            _generatorIL.Emit(OpCodes.Ret);
             _programClass.CreateType();
         }
 

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 using Antlr4.Runtime;
 using CCompiler.Codegen;
 
@@ -30,10 +30,11 @@ namespace CCompiler
                 var inputStream = new AntlrInputStream(fileStream);
                 var lexer = new CLexer(inputStream);
                 var tokenStream = new CommonTokenStream(lexer);
-                var cParser = new CParser(tokenStream);
+                var parser = new CParser(tokenStream);
                 var cilCodeGenerator
-                    = new CILCodeGenerator(_fileName,
-                                           cParser.compilationUnit());
+                    = new CILCodeGenerator(
+                        _fileName,
+                        parser.compilationUnit());
                 
                 cilCodeGenerator.Generate();
             }
