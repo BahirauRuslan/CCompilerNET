@@ -13,13 +13,11 @@ namespace CCompiler.Codegen
 {
     public class CILCodeGenerator
     {
-        public static readonly string DOTEXE = ".exe";
-        public static readonly string DOTDLL = ".dll";
-
         private readonly bool _hasEntryPoint;
 
         private readonly string _fileName;
         private readonly string _programName;
+        private readonly string _programFileName;
 
         private AssemblyName _assemblyName;
         private AssemblyBuilder _assemblyBuilder;
@@ -32,22 +30,13 @@ namespace CCompiler.Codegen
 
         private CParser.CompilationUnitContext _compilationUnit;
 
-        public CILCodeGenerator(
-            string fileName,
-            CParser.CompilationUnitContext compilationUnit)
+        public CILCodeGenerator(CPreBuilder preBuilder)
         {
-            _fileName = fileName;
-            _programName = Path.GetFileNameWithoutExtension(_fileName);
-            _compilationUnit = compilationUnit;
-            _hasEntryPoint = true;
-        }
-
-        public string ProgramFileName
-        {
-            get
-            {
-                return _programName + (_hasEntryPoint ? DOTEXE : DOTDLL);
-            }
+            _fileName = preBuilder.FileName;
+            _programName = preBuilder.ProgramName;
+            _programFileName = preBuilder.ProgramFileName;
+            _hasEntryPoint = preBuilder.HasEntryPoint;
+            _compilationUnit = preBuilder.CompilationUnit;
         }
 
         public void Generate()
@@ -59,7 +48,7 @@ namespace CCompiler.Codegen
 
             if (translationUnit != null)
             {
-                GenerateTranslationUnit(_compilationUnit.translationUnit());
+                GenerateTranslationUnit(translationUnit);
             }
 
             EmitProgramClass();
@@ -80,13 +69,13 @@ namespace CCompiler.Codegen
                 AssemblyBuilderAccess.Save);
 
             _moduleBuilder = _assemblyBuilder
-                .DefineDynamicModule(_programName, ProgramFileName, false);
+                .DefineDynamicModule(_programName, _programFileName, false);
         }
 
         protected void DefineProgramClass()
         {
             _programClass = _moduleBuilder.DefineType(
-                "Program", 
+                _programName, 
                 TypeAttributes.NotPublic | TypeAttributes.BeforeFieldInit, 
                 typeof(object));
             
@@ -162,11 +151,11 @@ namespace CCompiler.Codegen
         {
             var saveFileError = false;
 
-            if (File.Exists(ProgramFileName))
+            if (File.Exists(_programFileName))
             {
                 try
                 {
-                    File.Delete(ProgramFileName);
+                    File.Delete(_programFileName);
                 }
                 catch
                 {
@@ -176,7 +165,7 @@ namespace CCompiler.Codegen
 
             if (!saveFileError)
             {
-                _assemblyBuilder.Save(ProgramFileName);
+                _assemblyBuilder.Save(_programFileName);
             }
         }
     }

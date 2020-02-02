@@ -20,6 +20,11 @@ namespace CCompiler
                 throw new ArgumentException("message", nameof(fileName));
             }
 
+            if (!Path.GetExtension(fileName).Equals(".c"))
+            {
+                throw new FormatException("Incorrect file extension");
+            }
+
             _fileName = fileName;
         }
 
@@ -31,12 +36,17 @@ namespace CCompiler
                 var lexer = new CLexer(inputStream);
                 var tokenStream = new CommonTokenStream(lexer);
                 var parser = new CParser(tokenStream);
-                var cilCodeGenerator
-                    = new CILCodeGenerator(
-                        _fileName,
-                        parser.compilationUnit());
-                
-                cilCodeGenerator.Generate();
+                var compilationUnit = parser.compilationUnit();
+
+                if (parser.NumberOfSyntaxErrors == 0 && compilationUnit != null)
+                {
+                    var preBuilder = new CPreBuilder(
+                                             _fileName,
+                                             compilationUnit);
+                    var cilCodeGenerator = new CILCodeGenerator(preBuilder);
+
+                    cilCodeGenerator.Generate();
+                }
             }
         }
     }
