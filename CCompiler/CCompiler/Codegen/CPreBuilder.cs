@@ -23,7 +23,7 @@ namespace CCompiler.Codegen
             FileName = fileName;
             ProgramName = Path.GetFileNameWithoutExtension(FileName);
             CompilationUnit = compilationUnit;
-            _hasEntryPoint = true;
+            _hasEntryPoint = false;
 
             PrepareToCompile();
         }
@@ -52,7 +52,73 @@ namespace CCompiler.Codegen
 
         private void PrepareToCompile()
         {
+            if (CompilationUnit != null &&
+                CompilationUnit.translationUnit() != null)
+            {
+                AnalyzeTranslationUnit(CompilationUnit.translationUnit());
+            }
+
             _programFileName = ProgramName + (HasEntryPoint ? ".exe" : ".dll");
+        }
+
+        private void AnalyzeTranslationUnit(
+            CParser.TranslationUnitContext translationUnit)
+        {
+            var localTranslationUnit = translationUnit;
+            var externalDeclarationStack
+                = new Stack<CParser.ExternalDeclarationContext>();
+
+            while (localTranslationUnit.translationUnit() != null)
+            {
+                externalDeclarationStack
+                    .Push(localTranslationUnit.externalDeclaration());
+
+                localTranslationUnit = localTranslationUnit.translationUnit();
+            }
+
+            externalDeclarationStack
+                .Push(localTranslationUnit.externalDeclaration());
+
+            while (externalDeclarationStack.Count > 0)
+            {
+                AnalyzeExternalDeclaration(externalDeclarationStack.Pop());
+            }
+        }
+
+        private void AnalyzeExternalDeclaration(
+            CParser.ExternalDeclarationContext externalDeclaration)
+        {
+            var functionDefinition = externalDeclaration.functionDefinition();
+            var declaration = externalDeclaration.declaration();
+
+            if (functionDefinition != null)
+            {
+                AnalyzeFunctionDefinition(functionDefinition);
+            }
+            else if (declaration != null)
+            {
+                AnalyzeDeclaration(declaration);
+            }
+        }
+
+        private void AnalyzeFunctionDefinition(
+            CParser.FunctionDefinitionContext functionDefinition)
+        {
+            var identifier = functionDefinition
+                ?.declarator()
+                ?.directDeclarator()
+                ?.directDeclarator()
+                ?.Identifier();
+
+            if (identifier?.ToString() == "main")
+            {
+                _hasEntryPoint = true;
+            }
+        }
+
+        private void AnalyzeDeclaration(
+            CParser.DeclarationContext declaration)
+        {
         }
     }
 }
