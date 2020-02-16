@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using CCompiler.ObjectDefinitions;
 
 namespace CCompiler.Codegen
 {
@@ -25,8 +26,10 @@ namespace CCompiler.Codegen
 
         private TypeBuilder _programClass;
         private ConstructorBuilder _programConstructor;
-        //// private MethodBuilder _entryPoint;
+        private MethodBuilder _entryPoint;
         private ILGenerator _generatorIL;
+
+        private Dictionary<string, MethodDef> _functions = new Dictionary<string, MethodDef>();
 
         private CParser.CompilationUnitContext _compilationUnit;
 
@@ -132,6 +135,27 @@ namespace CCompiler.Codegen
         protected void GenerateFunctionDefinition(
             CParser.FunctionDefinitionContext functionDefinition)
         {
+            var typeSpecifier = functionDefinition
+                ?.declarationSpecifiers()
+                ?.declarationSpecifier()?[0]
+                ?.typeSpecifier();
+            var identifier = functionDefinition
+                ?.declarator()
+                ?.directDeclarator()
+                ?.directDeclarator()
+                ?.Identifier();
+            var parameters = functionDefinition
+                ?.declarator()
+                ?.directDeclarator()
+                ?.parameterTypeList();
+            var compoundStatement = functionDefinition?.compoundStatement();
+
+            DefineFunction(typeSpecifier, identifier, parameters);
+
+            if (identifier.ToString() == "main")
+            {
+                ;
+            }
         }
 
         protected void GenerateDeclaration(
@@ -139,6 +163,59 @@ namespace CCompiler.Codegen
         {
         }
 
+        protected void DefineFunction(
+            CParser.TypeSpecifierContext typeSpecifier,
+            ITerminalNode identifier,
+            CParser.ParameterTypeListContext parameters)
+        {
+            Type[] inputTypes = Type.EmptyTypes;
+
+            var functionName = identifier.ToString();
+            var functionReturnType = GetType(typeSpecifier.ToString());
+            var args = new Dictionary<string, MethodArgDef>();
+
+            args.Add("this", new MethodArgDef(_programClass, 0, "this"));
+
+            if (parameters != null)
+            {
+                //var parametersStack
+                //= new Stack<CParser.ExternalDeclarationContext>();
+
+                //parameters.
+                //var functionListNode = treeNode.GetChild(3);
+                //inputTypes = new Type[functionListNode.ChildCount];
+                //for (int k = 0; k < functionListNode.ChildCount; k++)
+                //{
+                //    inputTypes[k] = GetType(functionListNode.GetChild(k).GetChild(1).Text);
+                //    var argName = functionListNode.GetChild(k).GetChild(0).Text;
+                //    args.Add(argName, new ArgObjectDef(inputTypes[k], k + 1, argName));
+                //}
+            }
+            else
+            {
+                inputTypes = Type.EmptyTypes;
+            }
+
+            MethodBuilder methodBuilder;
+
+            if (functionName == "main")
+            {
+                methodBuilder = _programClass.DefineMethod(functionName,
+                    MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig, typeof(void), Type.EmptyTypes);
+                methodBuilder.SetCustomAttribute(new CustomAttributeBuilder(
+                    typeof(STAThreadAttribute).GetConstructor(Type.EmptyTypes), new object[] { }));
+                _assemblyBuilder.SetEntryPoint(methodBuilder);
+                _entryPoint = methodBuilder;
+            }
+            else
+            {
+                methodBuilder = _programClass.DefineMethod(functionName, MethodAttributes.Public | MethodAttributes.HideBySig, functionReturnType, inputTypes);
+            }
+
+
+            _functions.Add(functionName, new MethodDef(functionName, args, methodBuilder));
+        }
+        
         protected void EmitProgramClass()
         {
             _generatorIL = _programConstructor.GetILGenerator();
@@ -167,6 +244,41 @@ namespace CCompiler.Codegen
             {
                 _assemblyBuilder.Save(_programFileName);
             }
+        }
+
+        protected Type GetType(string typeName)
+        {
+            Type result;
+
+            switch (typeName)
+            {
+                case "void":
+                    result = typeof(void);
+                    break;
+                case "char":
+                    result = typeof(char);
+                    break;
+                case "short":
+                    result = typeof(short);
+                    break;
+                case "int":
+                    result = typeof(int);
+                    break;
+                case "float":
+                    result = typeof(float);
+                    break;
+                case "double":
+                    result = typeof(double);
+                    break;
+                case "bool":
+                    result = typeof(bool);
+                    break;
+                default:
+                    result = _moduleBuilder.GetType(typeName);
+                    break;
+            }
+
+            return result;
         }
     }
 }
