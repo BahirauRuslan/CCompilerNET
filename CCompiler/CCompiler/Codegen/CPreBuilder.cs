@@ -13,9 +13,6 @@ namespace CCompiler.Codegen
 {
     public class CPreBuilder
     {
-        private bool _hasEntryPoint;
-        private string _programFileName;
-
         public CPreBuilder(
             string fileName,
             CParser.CompilationUnitContext compilationUnit)
@@ -23,7 +20,7 @@ namespace CCompiler.Codegen
             FileName = fileName;
             ProgramName = Path.GetFileNameWithoutExtension(FileName);
             CompilationUnit = compilationUnit;
-            _hasEntryPoint = false;
+            HasEntryPoint = false;
 
             PrepareToCompile();
         }
@@ -34,21 +31,9 @@ namespace CCompiler.Codegen
 
         public CParser.CompilationUnitContext CompilationUnit { get; }
 
-        public bool HasEntryPoint
-        {
-            get
-            {
-                return _hasEntryPoint;
-            }
-        }
+        public bool HasEntryPoint { get; private set; }
 
-        public string ProgramFileName
-        {
-            get
-            {
-                return _programFileName;
-            }
-        }
+        public string ProgramFileName { get; private set; }
 
         private void PrepareToCompile()
         {
@@ -58,7 +43,7 @@ namespace CCompiler.Codegen
                 AnalyzeTranslationUnit(CompilationUnit.translationUnit());
             }
 
-            _programFileName = ProgramName + (HasEntryPoint ? ".exe" : ".dll");
+            ProgramFileName = ProgramName + (HasEntryPoint ? ".exe" : ".dll");
         }
 
         private void AnalyzeTranslationUnit(
@@ -112,7 +97,7 @@ namespace CCompiler.Codegen
 
             if (identifier?.ToString() == "main")
             {
-                _hasEntryPoint = true;
+                HasEntryPoint = true;
             }
         }
 
