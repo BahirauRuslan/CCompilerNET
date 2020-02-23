@@ -226,6 +226,108 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitCompoundStatement(CParser.CompoundStatementContext compoundStatement)
         {
+            ObjectDef returnObjectDef = null;
+
+            var blockItemStack = compoundStatement.blockItemList().RBABlockItemStack();
+
+            while (blockItemStack.Count > 0)
+            {
+                returnObjectDef = EmitBlockItem(blockItemStack.Pop());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitBlockItem(CParser.BlockItemContext blockItem)
+        {
+            ObjectDef returnObjectDef;
+
+            if (blockItem.statement() != null)
+            {
+                returnObjectDef = EmitStatement(blockItem.statement());
+            }
+            else if (blockItem.declaration() != null)
+            {
+                returnObjectDef = EmitDeclaration(blockItem.declaration());
+            }
+            else
+            {
+                returnObjectDef = null;
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitDeclaration(CParser.DeclarationContext declaration)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitStatement(CParser.StatementContext statement)
+        {
+            ObjectDef returnObjectDef;
+
+            if (statement.compoundStatement() != null)
+            {
+                returnObjectDef = EmitCompoundStatement(statement.compoundStatement());
+            }
+            else if (statement.expressionStatement() != null)
+            {
+                returnObjectDef = EmitExpressionStatement(statement.expressionStatement());
+            }
+            else if (statement.selectionStatement() != null)
+            {
+                returnObjectDef = EmitSelectionStatement(statement.selectionStatement());
+            }
+            else if (statement.iterationStatement() != null)
+            {
+                returnObjectDef = EmitIterationStatement(statement.iterationStatement());
+            }
+            else if (statement.jumpStatement() != null)
+            {
+                returnObjectDef = EmitJumpStatement(statement.jumpStatement());
+            }
+            else
+            {
+                returnObjectDef = null;
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitExpressionStatement(CParser.ExpressionStatementContext expressionStatement)
+        {
+            ObjectDef returnObjectDef;
+
+            if (expressionStatement.expression() != null)
+            {
+                returnObjectDef = EmitExpression(expressionStatement.expression());
+            }
+            else
+            {
+                returnObjectDef = null;
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitSelectionStatement(CParser.SelectionStatementContext selectionStatement)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitIterationStatement(CParser.IterationStatementContext iterationStatement)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitJumpStatement(CParser.JumpStatementContext jumpStatement)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitExpression(CParser.ExpressionContext expression)
+        {
             return null;
         }
         
