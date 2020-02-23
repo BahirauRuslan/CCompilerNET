@@ -18,7 +18,9 @@ namespace CCompiler
                 compiler.Compile();
             }
             catch (Exception e)
-            when (e is ArgumentNullException || e is FileNotFoundException)
+            when (e is ArgumentNullException ||
+                  e is FileNotFoundException ||
+                  e is FormatException)
             {
                 Console.WriteLine(e.Message);
             }
