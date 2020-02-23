@@ -51,6 +51,7 @@
     <Compile Include="Extensions\TranslationUnitExtension.cs" />
     <Compile Include="Extensions\FunctionDefinitionExtension.cs" />
     <Compile Include="Extensions\TypeSpecifierExtension.cs" />
+    <Compile Include="Extensions\BlockItemListExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="C.g4" />
