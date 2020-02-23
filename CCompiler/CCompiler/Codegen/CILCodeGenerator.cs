@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using System.Threading.Tasks;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using CCompiler.Extensions;
 using CCompiler.ObjectDefinitions;
 
 namespace CCompiler.Codegen
@@ -78,8 +79,8 @@ namespace CCompiler.Codegen
         protected void DefineProgramClass()
         {
             _programClass = _moduleBuilder.DefineType(
-                _programName, 
-                TypeAttributes.NotPublic | TypeAttributes.BeforeFieldInit, 
+                _programName + "." + _programName, 
+                TypeAttributes.Public | TypeAttributes.BeforeFieldInit, 
                 typeof(object));
             
             _programClass.DefineDefaultConstructor(MethodAttributes.Public);
@@ -95,20 +96,7 @@ namespace CCompiler.Codegen
         protected void GenerateTranslationUnit(
             CParser.TranslationUnitContext translationUnit)
         {
-            var localTranslationUnit = translationUnit;
-            var externalDeclarationStack
-                = new Stack<CParser.ExternalDeclarationContext>();
-
-            while (localTranslationUnit.translationUnit() != null)
-            {
-                externalDeclarationStack
-                    .Push(localTranslationUnit.externalDeclaration());
-                
-                localTranslationUnit = localTranslationUnit.translationUnit();
-            }
-
-            externalDeclarationStack
-                .Push(localTranslationUnit.externalDeclaration());
+            var externalDeclarationStack = translationUnit.RBAExternalDeclarationStack();
 
             while (externalDeclarationStack.Count > 0)
             {
@@ -135,27 +123,13 @@ namespace CCompiler.Codegen
         protected void GenerateFunctionDefinition(
             CParser.FunctionDefinitionContext functionDefinition)
         {
-            var typeSpecifier = functionDefinition
-                ?.declarationSpecifiers()
-                ?.declarationSpecifier()?[0]
-                ?.typeSpecifier();
-            var identifier = functionDefinition
-                ?.declarator()
-                ?.directDeclarator()
-                ?.directDeclarator()
-                ?.Identifier();
-            var parameters = functionDefinition
-                ?.declarator()
-                ?.directDeclarator()
-                ?.parameterTypeList();
+            var typeSpecifier = functionDefinition.RBATypeSpecifier();
+            var identifier = functionDefinition.RBAIdentifier();
+            var parameters = functionDefinition.RBAParameters();
             var compoundStatement = functionDefinition?.compoundStatement();
 
             DefineFunction(typeSpecifier, identifier, parameters);
-
-            if (identifier.ToString() == "main")
-            {
-                ;
-            }
+            EmitFunction(typeSpecifier, identifier, parameters, compoundStatement);
         }
 
         protected void GenerateDeclaration(
@@ -171,10 +145,11 @@ namespace CCompiler.Codegen
             Type[] inputTypes = Type.EmptyTypes;
 
             var functionName = identifier.ToString();
-            var functionReturnType = GetType(typeSpecifier.ToString());
-            var args = new Dictionary<string, MethodArgDef>();
-
-            args.Add("this", new MethodArgDef(_programClass, 0, "this"));
+            var functionReturnType = typeSpecifier.RBAType(_moduleBuilder);
+            var args = new Dictionary<string, MethodArgDef>
+            {
+                { "this", new MethodArgDef(_programClass, 0, "this") }
+            };
 
             if (parameters != null)
             {
@@ -212,8 +187,46 @@ namespace CCompiler.Codegen
                 methodBuilder = _programClass.DefineMethod(functionName, MethodAttributes.Public | MethodAttributes.HideBySig, functionReturnType, inputTypes);
             }
 
-
             _functions.Add(functionName, new MethodDef(functionName, args, methodBuilder));
+        }
+
+        protected void EmitFunction(
+            CParser.TypeSpecifierContext typeSpecifier,
+            ITerminalNode identifier,
+            CParser.ParameterTypeListContext parameters,
+            CParser.CompoundStatementContext compoundStatement)
+        {
+            var functionName = identifier.ToString();
+
+            //CurrentArgs_ = Functions_[CurrentTypeBuilder_.Name][functionName].Args;
+            _generatorIL = _functions[functionName].MethodBuilder.GetILGenerator();
+
+            LocalObjectDef.InitGenerator(_generatorIL);
+
+            if (compoundStatement.blockItemList() != null)
+            {
+                var returnObjectDef = EmitCompoundStatement(compoundStatement);
+
+                returnObjectDef.Load();
+
+                if (_functions[functionName].MethodBuilder.ReturnType == typeof(void))
+                {
+                    _generatorIL.Emit(OpCodes.Pop);
+                }
+
+                _generatorIL.Emit(OpCodes.Ret);
+
+                returnObjectDef.Remove();
+            }
+            else
+            {
+                _generatorIL.Emit(OpCodes.Ret);
+            }
+        }
+
+        protected ObjectDef EmitCompoundStatement(CParser.CompoundStatementContext compoundStatement)
+        {
+            return null;
         }
         
         protected void EmitProgramClass()
@@ -244,41 +257,6 @@ namespace CCompiler.Codegen
             {
                 _assemblyBuilder.Save(_programFileName);
             }
-        }
-
-        protected Type GetType(string typeName)
-        {
-            Type result;
-
-            switch (typeName)
-            {
-                case "void":
-                    result = typeof(void);
-                    break;
-                case "char":
-                    result = typeof(char);
-                    break;
-                case "short":
-                    result = typeof(short);
-                    break;
-                case "int":
-                    result = typeof(int);
-                    break;
-                case "float":
-                    result = typeof(float);
-                    break;
-                case "double":
-                    result = typeof(double);
-                    break;
-                case "bool":
-                    result = typeof(bool);
-                    break;
-                default:
-                    result = _moduleBuilder.GetType(typeName);
-                    break;
-            }
-
-            return result;
         }
     }
 }
