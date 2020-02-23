@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using CCompiler.Extensions;
 
 namespace CCompiler.Codegen
 {
@@ -18,7 +19,8 @@ namespace CCompiler.Codegen
             CParser.CompilationUnitContext compilationUnit)
         {
             FileName = fileName;
-            ProgramName = Path.GetFileNameWithoutExtension(FileName);
+            ProgramName = Path.GetFileNameWithoutExtension(FileName).First().ToString().ToUpper()
+                + Path.GetFileNameWithoutExtension(FileName).Substring(1);
             CompilationUnit = compilationUnit;
             HasEntryPoint = false;
 
@@ -43,26 +45,14 @@ namespace CCompiler.Codegen
                 AnalyzeTranslationUnit(CompilationUnit.translationUnit());
             }
 
-            ProgramFileName = ProgramName + (HasEntryPoint ? ".exe" : ".dll");
+            ProgramFileName = Path.GetFileNameWithoutExtension(FileName) + (HasEntryPoint ? ".exe" : ".dll");
         }
 
         private void AnalyzeTranslationUnit(
             CParser.TranslationUnitContext translationUnit)
         {
-            var localTranslationUnit = translationUnit;
             var externalDeclarationStack
-                = new Stack<CParser.ExternalDeclarationContext>();
-
-            while (localTranslationUnit.translationUnit() != null)
-            {
-                externalDeclarationStack
-                    .Push(localTranslationUnit.externalDeclaration());
-
-                localTranslationUnit = localTranslationUnit.translationUnit();
-            }
-
-            externalDeclarationStack
-                .Push(localTranslationUnit.externalDeclaration());
+                = translationUnit.RBAExternalDeclarationStack();
 
             while (externalDeclarationStack.Count > 0)
             {
@@ -89,11 +79,7 @@ namespace CCompiler.Codegen
         private void AnalyzeFunctionDefinition(
             CParser.FunctionDefinitionContext functionDefinition)
         {
-            var identifier = functionDefinition
-                ?.declarator()
-                ?.directDeclarator()
-                ?.directDeclarator()
-                ?.Identifier();
+            var identifier = functionDefinition.RBAIdentifier();
 
             if (identifier?.ToString() == "main")
             {
