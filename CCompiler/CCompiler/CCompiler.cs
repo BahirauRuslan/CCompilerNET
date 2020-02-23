@@ -24,7 +24,7 @@ namespace CCompiler
             {
                 throw new FormatException("Incorrect file extension");
             }
-
+            
             _fileName = fileName;
         }
 
