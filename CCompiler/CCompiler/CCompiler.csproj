@@ -30,7 +30,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="Antlr4.Runtime.Standard">
-      <HintPath>..\packages\Antlr4.Runtime.Standard.4.7.2\lib\net35\Antlr4.Runtime.Standard.dll</HintPath>
+      <HintPath>..\packages\Antlr4.Runtime.Standard.4.8.0\lib\net35\Antlr4.Runtime.Standard.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +42,15 @@
     <Compile Include="CListener.cs" />
     <Compile Include="CParser.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Codegen\CPreBuilder.cs" />
+    <Compile Include="ObjectDefinitions\MethodDef.cs" />
+    <Compile Include="ObjectDefinitions\MethodArgDef.cs" />
+    <Compile Include="ObjectDefinitions\ObjectDef.cs" />
+    <Compile Include="ObjectDefinitions\ObjectScope.cs" />
+    <Compile Include="ObjectDefinitions\LocalObjectDef.cs" />
+    <Compile Include="Extensions\TranslationUnitExtension.cs" />
+    <Compile Include="Extensions\FunctionDefinitionExtension.cs" />
+    <Compile Include="Extensions\TypeSpecifierExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="C.g4" />
@@ -51,6 +60,10 @@
     <None Include="CLexer.tokens" />
     <None Include="packages.config" />
     <None Include="bin\Debug\code.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ObjectDefinitions\" />
+    <Folder Include="Extensions\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Antlr4.CodeGenerator.4.6.6\build\Antlr4.CodeGenerator.targets" Condition="Exists('..\packages\Antlr4.CodeGenerator.4.6.6\build\Antlr4.CodeGenerator.targets')" />

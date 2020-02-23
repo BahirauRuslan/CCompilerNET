@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 using Antlr4.Runtime;
 using CCompiler.Codegen;
 
@@ -20,6 +20,11 @@ namespace CCompiler
                 throw new ArgumentException("message", nameof(fileName));
             }
 
+            if (!Path.GetExtension(fileName).Equals(".c"))
+            {
+                throw new FormatException("Incorrect file extension");
+            }
+            
             _fileName = fileName;
         }
 
@@ -30,12 +35,18 @@ namespace CCompiler
                 var inputStream = new AntlrInputStream(fileStream);
                 var lexer = new CLexer(inputStream);
                 var tokenStream = new CommonTokenStream(lexer);
-                var cParser = new CParser(tokenStream);
-                var cilCodeGenerator
-                    = new CILCodeGenerator(_fileName,
-                                           cParser.compilationUnit());
-                
-                cilCodeGenerator.Generate();
+                var parser = new CParser(tokenStream);
+                var compilationUnit = parser.compilationUnit();
+
+                if (parser.NumberOfSyntaxErrors == 0 && compilationUnit != null)
+                {
+                    var preBuilder = new CPreBuilder(
+                                             _fileName,
+                                             compilationUnit);
+                    var cilCodeGenerator = new CILCodeGenerator(preBuilder);
+
+                    cilCodeGenerator.Generate();
+                }
             }
         }
     }
