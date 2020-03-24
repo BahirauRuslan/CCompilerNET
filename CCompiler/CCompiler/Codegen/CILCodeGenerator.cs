@@ -328,6 +328,25 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitExpression(CParser.ExpressionContext expression)
         {
+            ObjectDef returnObjectDef = null;
+
+            var assignmentExpressionStack = expression.RBAAssignmentExpressionStack();
+
+            while (assignmentExpressionStack.Count > 0)
+            {
+                returnObjectDef = EmitAssignmentExpression(assignmentExpressionStack.Pop());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitAssignmentExpression(CParser.AssignmentExpressionContext assignmentExpression)
+        {
+            if (assignmentExpression.conditionalExpression() != null)
+            {
+                ;
+            }
+
             return null;
         }
         

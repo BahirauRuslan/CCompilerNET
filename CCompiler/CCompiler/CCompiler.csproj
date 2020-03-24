@@ -52,6 +52,8 @@
     <Compile Include="Extensions\FunctionDefinitionExtension.cs" />
     <Compile Include="Extensions\TypeSpecifierExtension.cs" />
     <Compile Include="Extensions\BlockItemListExtension.cs" />
+    <Compile Include="ObjectDefinitions\ValueObjectDef.cs" />
+    <Compile Include="Extensions\ExpressionExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="C.g4" />
