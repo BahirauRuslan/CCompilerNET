@@ -32,6 +32,9 @@
     <Reference Include="Antlr4.Runtime.Standard">
       <HintPath>..\packages\Antlr4.Runtime.Standard.4.8.0\lib\net35\Antlr4.Runtime.Standard.dll</HintPath>
     </Reference>
+    <Reference Include="code">
+      <HintPath>bin\Debug\code.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />

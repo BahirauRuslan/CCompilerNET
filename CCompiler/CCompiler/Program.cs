@@ -16,6 +16,10 @@ namespace CCompiler
                 var compiler = new CCompiler(fileName);
 
                 compiler.Compile();
+                Code.Code code = new Code.Code();
+                var num = code.func54();
+
+                Console.WriteLine(num);
             }
             catch (Exception e)
             when (e is ArgumentNullException ||
