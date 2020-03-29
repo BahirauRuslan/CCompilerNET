@@ -226,9 +226,591 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitCompoundStatement(CParser.CompoundStatementContext compoundStatement)
         {
+            ObjectDef returnObjectDef = null;
+
+            var blockItemStack = compoundStatement.blockItemList().RBABlockItemStack();
+
+            while (blockItemStack.Count > 0)
+            {
+                returnObjectDef = EmitBlockItem(blockItemStack.Pop());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitBlockItem(CParser.BlockItemContext blockItem)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (blockItem.statement() != null)
+            {
+                returnObjectDef = EmitStatement(blockItem.statement());
+            }
+            else if (blockItem.declaration() != null)
+            {
+                returnObjectDef = EmitDeclaration(blockItem.declaration());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitDeclaration(CParser.DeclarationContext declaration)
+        {
             return null;
         }
-        
+
+        protected ObjectDef EmitStatement(CParser.StatementContext statement)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (statement.compoundStatement() != null)
+            {
+                returnObjectDef = EmitCompoundStatement(statement.compoundStatement());
+            }
+            else if (statement.expressionStatement() != null)
+            {
+                returnObjectDef = EmitExpressionStatement(statement.expressionStatement());
+            }
+            else if (statement.selectionStatement() != null)
+            {
+                returnObjectDef = EmitSelectionStatement(statement.selectionStatement());
+            }
+            else if (statement.iterationStatement() != null)
+            {
+                returnObjectDef = EmitIterationStatement(statement.iterationStatement());
+            }
+            else if (statement.jumpStatement() != null)
+            {
+                returnObjectDef = EmitJumpStatement(statement.jumpStatement());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitExpressionStatement(CParser.ExpressionStatementContext expressionStatement)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (expressionStatement.expression() != null)
+            {
+                returnObjectDef = EmitExpression(expressionStatement.expression());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitSelectionStatement(CParser.SelectionStatementContext selectionStatement)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitIterationStatement(CParser.IterationStatementContext iterationStatement)
+        {
+            return null;
+        }
+
+        protected ObjectDef EmitJumpStatement(CParser.JumpStatementContext jumpStatement)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (jumpStatement.expression() != null && jumpStatement.Return() != null)
+            {
+                returnObjectDef = EmitExpression(jumpStatement.expression());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitExpression(CParser.ExpressionContext expression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            var assignmentExpressionStack = expression.RBAAssignmentExpressionStack();
+
+            while (assignmentExpressionStack.Count > 0)
+            {
+                returnObjectDef = EmitAssignmentExpression(assignmentExpressionStack.Pop());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitAssignmentExpression(CParser.AssignmentExpressionContext assignmentExpression)
+        {
+            ObjectDef returnObjectDef;
+
+            if (assignmentExpression.conditionalExpression() != null)
+            {
+                returnObjectDef = EmitConditionalExpression(assignmentExpression.conditionalExpression());
+            }
+            else
+            {
+                returnObjectDef = null; // TODO: Emit assignment expressions
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitConditionalExpression(CParser.ConditionalExpressionContext conditionalExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (conditionalExpression.logicalOrExpression() != null)
+            {
+                returnObjectDef = EmitLogicalOrExpression(conditionalExpression.logicalOrExpression());
+            }
+
+            if (conditionalExpression.logicalOrExpression() != null &&
+                conditionalExpression.expression() != null &&
+                conditionalExpression.conditionalExpression() != null)
+            {
+                returnObjectDef = null; // TODO: Emit conditional expression
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitLogicalOrExpression(CParser.LogicalOrExpressionContext logicalOrExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (logicalOrExpression.logicalAndExpression() != null)
+            {
+                returnObjectDef = EmitLogicalAndExpression(logicalOrExpression.logicalAndExpression());
+            }
+
+            if (logicalOrExpression.logicalAndExpression() != null &&
+                logicalOrExpression.logicalOrExpression() != null)
+            {
+                returnObjectDef = null; // TODO: Emit logical 'OR' expression
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitLogicalAndExpression(CParser.LogicalAndExpressionContext logicalAndExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (logicalAndExpression.inclusiveOrExpression() != null)
+            {
+                returnObjectDef = EmitInclusiveOrExpression(logicalAndExpression.inclusiveOrExpression());
+            }
+
+            if (logicalAndExpression.inclusiveOrExpression() != null &&
+                logicalAndExpression.logicalAndExpression() != null)
+            {
+                returnObjectDef = null; // TODO: Emit logical 'AND' expression
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitInclusiveOrExpression(CParser.InclusiveOrExpressionContext inclusiveOrExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (inclusiveOrExpression.exclusiveOrExpression() != null)
+            {
+                returnObjectDef = EmitExclusiveOrExpression(inclusiveOrExpression.exclusiveOrExpression());
+            }
+
+            if (inclusiveOrExpression.exclusiveOrExpression() != null &&
+                inclusiveOrExpression.inclusiveOrExpression() != null)
+            {
+                var orObj = EmitInclusiveOrExpression(inclusiveOrExpression.inclusiveOrExpression());
+
+                orObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Or);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitExclusiveOrExpression(CParser.ExclusiveOrExpressionContext exclusiveOrExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (exclusiveOrExpression.andExpression() != null)
+            {
+                returnObjectDef = EmitAndExpression(exclusiveOrExpression.andExpression());
+            }
+
+            if (exclusiveOrExpression.andExpression() != null &&
+                exclusiveOrExpression.exclusiveOrExpression() != null)
+            {
+                var orObj = EmitExclusiveOrExpression(exclusiveOrExpression.exclusiveOrExpression());
+
+                orObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Xor);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitAndExpression(CParser.AndExpressionContext andExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (andExpression.equalityExpression() != null)
+            {
+                returnObjectDef = EmitEqualityExpression(andExpression.equalityExpression());
+            }
+
+            if (andExpression.equalityExpression() != null &&
+                andExpression.andExpression() != null)
+            {
+                var andObj = EmitAndExpression(andExpression.andExpression());
+
+                andObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.And);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitEqualityExpression(CParser.EqualityExpressionContext equalityExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (equalityExpression.relationalExpression() != null)
+            {
+                returnObjectDef = EmitRelationalExpression(equalityExpression.relationalExpression());
+            }
+
+            if (equalityExpression.relationalExpression() != null &&
+                equalityExpression.equalityExpression() != null)
+            {
+                var equalityObj = EmitEqualityExpression(equalityExpression.equalityExpression());
+
+                equalityObj.Load();
+                returnObjectDef.Load();
+
+                if (equalityExpression.Equal() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Ceq);
+                }
+                else if (equalityExpression.NotEqual() != null)
+                {
+                    var zero = new ValueObjectDef(typeof(int), 0);
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+                    zero.Load();
+                    _generatorIL.Emit(OpCodes.Ceq);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitRelationalExpression(CParser.RelationalExpressionContext relationalExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (relationalExpression.shiftExpression() != null)
+            {
+                returnObjectDef = EmitShiftExpression(relationalExpression.shiftExpression());
+            }
+
+            if (relationalExpression.shiftExpression() != null &&
+                relationalExpression.relationalExpression() != null)
+            {
+                var relationalObj = EmitRelationalExpression(relationalExpression.relationalExpression());
+
+                if (relationalExpression.Less() != null)
+                {
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Clt);
+                }
+                else if (relationalExpression.LessEqual() != null)
+                {
+                    ObjectDef less;
+                    ObjectDef equal;
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Clt);
+
+                    less = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    returnObjectDef.Load();
+                    relationalObj.Load();
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+
+                    equal = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    less.Load();
+                    equal.Load();
+
+                    _generatorIL.Emit(OpCodes.Or);
+                }
+                else if (relationalExpression.Greater() != null)
+                {
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Cgt);
+                }
+                else if (relationalExpression.GreaterEqual() != null)
+                {
+                    ObjectDef greater;
+                    ObjectDef equal;
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Cgt);
+
+                    greater = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+
+                    equal = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    greater.Load();
+                    equal.Load();
+
+                    _generatorIL.Emit(OpCodes.Or);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitShiftExpression(CParser.ShiftExpressionContext shiftExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (shiftExpression.additiveExpression() != null)
+            {
+                returnObjectDef = EmitAdditiveExpression(shiftExpression.additiveExpression());
+            }
+
+            if (shiftExpression.additiveExpression() != null &&
+                shiftExpression.shiftExpression() != null)
+            {
+                var shiftObj = EmitShiftExpression(shiftExpression.shiftExpression());
+
+                shiftObj.Load();
+                returnObjectDef.Load();
+
+                if (shiftExpression.LeftShift() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Shl);
+                }
+                else if (shiftExpression.RightShift() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Shr);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitAdditiveExpression(CParser.AdditiveExpressionContext additiveExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (additiveExpression.multiplicativeExpression() != null)
+            {
+                returnObjectDef = EmitMultiplicativeExpression(additiveExpression.multiplicativeExpression());
+            }
+
+            if (additiveExpression.multiplicativeExpression() != null &&
+                additiveExpression.additiveExpression() != null)
+            {
+                var additiveObj = EmitAdditiveExpression(additiveExpression.additiveExpression());
+
+                additiveObj.Load();
+                returnObjectDef.Load();
+
+                if (additiveExpression.Plus() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Add);
+                }
+                else if (additiveExpression.Minus() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Sub);
+                }
+                
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitMultiplicativeExpression(CParser.MultiplicativeExpressionContext multiplicativeExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (multiplicativeExpression.castExpression() != null)
+            {
+                returnObjectDef = EmitCastExpression(multiplicativeExpression.castExpression());
+            }
+
+            if (multiplicativeExpression.castExpression() != null &&
+                multiplicativeExpression.multiplicativeExpression() != null)
+            {
+                var multiplicativeObj = EmitMultiplicativeExpression(multiplicativeExpression.multiplicativeExpression());
+
+                multiplicativeObj.Load();
+                returnObjectDef.Load();
+
+                if (multiplicativeExpression.Star() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Mul);
+                }
+                else if (multiplicativeExpression.Div() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Div);
+                }
+                else if (multiplicativeExpression.Mod() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Rem);
+                }
+                
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitCastExpression(CParser.CastExpressionContext castExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (castExpression.unaryExpression() != null)
+            {
+                returnObjectDef = EmitUnaryExpression(castExpression.unaryExpression());
+            }
+            else
+            {
+                returnObjectDef = null; // Skip cast expression
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitUnaryExpression(CParser.UnaryExpressionContext unaryExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (unaryExpression.postfixExpression() != null)
+            {
+                returnObjectDef = EmitPostfixExpression(unaryExpression.postfixExpression());
+            }
+            else
+            {
+                returnObjectDef = null; // Skip unary expressions
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitPostfixExpression(CParser.PostfixExpressionContext postfixExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (postfixExpression.primaryExpression() != null)
+            {
+                returnObjectDef = EmitPrimaryExpression(postfixExpression.primaryExpression());
+            }
+            else
+            {
+                returnObjectDef = null; // Skip postfix expressions
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitPrimaryExpression(CParser.PrimaryExpressionContext primaryExpression)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (primaryExpression.Identifier() != null)
+            {
+                ;   // TODO: load from identifier
+            }
+            else if (primaryExpression.Constant() != null)
+            {
+                returnObjectDef = EmitConstant(primaryExpression.Constant());
+            }
+            else if (primaryExpression.StringLiteral() != null)
+            {
+                ;
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitConstant(ITerminalNode constant)
+        {
+            ObjectDef returnObjectDef = null;
+
+            if (int.TryParse(constant.ToString(), out _))
+            {
+                returnObjectDef = EmitInteger(constant);
+            }
+            else if (double.TryParse(constant.ToString(), out _))
+            {
+                returnObjectDef = EmitDouble(constant);
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitInteger(ITree expressionNode)
+        {
+            var result = new ValueObjectDef(typeof(int), int.Parse(expressionNode.ToString()));
+            return result;
+        }
+
+        protected ObjectDef EmitDouble(ITree expressionNode)
+        {
+            var result = new ValueObjectDef(typeof(double), double.Parse(expressionNode.ToString()));
+            return result;
+        }
+
+        protected ObjectDef EmitString(ITree expressionNode)
+        {
+            var result = new ValueObjectDef(typeof(string), expressionNode.ToString());
+            return result;
+        }
+
+        protected ObjectDef EmitBoolean(ITree expressionNode)
+        {
+            var result = new ValueObjectDef(typeof(bool), bool.Parse(expressionNode.ToString()));
+            return result;
+        }
+
+        protected ObjectDef EmitVoid(ITree expressionNode)
+        {
+            var result = new ValueObjectDef(typeof(Nullable), null);
+            return result;
+        }
+
         protected void EmitProgramClass()
         {
             _generatorIL = _programConstructor.GetILGenerator();
