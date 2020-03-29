@@ -32,6 +32,16 @@
     <Reference Include="Antlr4.Runtime.Standard">
       <HintPath>..\packages\Antlr4.Runtime.Standard.4.8.0\lib\net35\Antlr4.Runtime.Standard.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Telegram.Bot">
+      <HintPath>..\packages\Telegram.Bot.15.4.0\lib\net45\Telegram.Bot.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="code">
+      <HintPath>bin\Debug\code.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -51,6 +61,9 @@
     <Compile Include="Extensions\TranslationUnitExtension.cs" />
     <Compile Include="Extensions\FunctionDefinitionExtension.cs" />
     <Compile Include="Extensions\TypeSpecifierExtension.cs" />
+    <Compile Include="Extensions\BlockItemListExtension.cs" />
+    <Compile Include="ObjectDefinitions\ValueObjectDef.cs" />
+    <Compile Include="Extensions\ExpressionExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="C.g4" />
