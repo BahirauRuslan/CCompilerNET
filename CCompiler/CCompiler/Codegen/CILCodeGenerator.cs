@@ -418,7 +418,13 @@ namespace CCompiler.Codegen
             if (inclusiveOrExpression.exclusiveOrExpression() != null &&
                 inclusiveOrExpression.inclusiveOrExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit inclusive 'OR |' expression
+                var orObj = EmitInclusiveOrExpression(inclusiveOrExpression.inclusiveOrExpression());
+
+                orObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Or);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -436,7 +442,13 @@ namespace CCompiler.Codegen
             if (exclusiveOrExpression.andExpression() != null &&
                 exclusiveOrExpression.exclusiveOrExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit exclusive 'OR ^' expression
+                var orObj = EmitExclusiveOrExpression(exclusiveOrExpression.exclusiveOrExpression());
+
+                orObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Xor);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -454,7 +466,13 @@ namespace CCompiler.Codegen
             if (andExpression.equalityExpression() != null &&
                 andExpression.andExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit 'AND &' expression
+                var andObj = EmitAndExpression(andExpression.andExpression());
+
+                andObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.And);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -472,7 +490,25 @@ namespace CCompiler.Codegen
             if (equalityExpression.relationalExpression() != null &&
                 equalityExpression.equalityExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit equality expressions
+                var equalityObj = EmitEqualityExpression(equalityExpression.equalityExpression());
+
+                equalityObj.Load();
+                returnObjectDef.Load();
+
+                if (equalityExpression.Equal() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Ceq);
+                }
+                else if (equalityExpression.NotEqual() != null)
+                {
+                    var zero = new ValueObjectDef(typeof(int), 0);
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+                    zero.Load();
+                    _generatorIL.Emit(OpCodes.Ceq);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -490,7 +526,72 @@ namespace CCompiler.Codegen
             if (relationalExpression.shiftExpression() != null &&
                 relationalExpression.relationalExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit relational expressions
+                var relationalObj = EmitRelationalExpression(relationalExpression.relationalExpression());
+
+                if (relationalExpression.Less() != null)
+                {
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Clt);
+                }
+                else if (relationalExpression.LessEqual() != null)
+                {
+                    ObjectDef less;
+                    ObjectDef equal;
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Clt);
+
+                    less = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    returnObjectDef.Load();
+                    relationalObj.Load();
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+
+                    equal = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    less.Load();
+                    equal.Load();
+
+                    _generatorIL.Emit(OpCodes.Or);
+                }
+                else if (relationalExpression.Greater() != null)
+                {
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Cgt);
+                }
+                else if (relationalExpression.GreaterEqual() != null)
+                {
+                    ObjectDef greater;
+                    ObjectDef equal;
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Cgt);
+
+                    greater = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    relationalObj.Load();
+                    returnObjectDef.Load();
+
+                    _generatorIL.Emit(OpCodes.Ceq);
+
+                    equal = LocalObjectDef.AllocateLocal(typeof(int));
+
+                    greater.Load();
+                    equal.Load();
+
+                    _generatorIL.Emit(OpCodes.Or);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -508,7 +609,21 @@ namespace CCompiler.Codegen
             if (shiftExpression.additiveExpression() != null &&
                 shiftExpression.shiftExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit shift expressions
+                var shiftObj = EmitShiftExpression(shiftExpression.shiftExpression());
+
+                shiftObj.Load();
+                returnObjectDef.Load();
+
+                if (shiftExpression.LeftShift() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Shl);
+                }
+                else if (shiftExpression.RightShift() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Shr);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -526,7 +641,21 @@ namespace CCompiler.Codegen
             if (additiveExpression.multiplicativeExpression() != null &&
                 additiveExpression.additiveExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit additive expressions
+                var additiveObj = EmitAdditiveExpression(additiveExpression.additiveExpression());
+
+                additiveObj.Load();
+                returnObjectDef.Load();
+
+                if (additiveExpression.Plus() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Add);
+                }
+                else if (additiveExpression.Minus() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Sub);
+                }
+                
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -544,7 +673,25 @@ namespace CCompiler.Codegen
             if (multiplicativeExpression.castExpression() != null &&
                 multiplicativeExpression.multiplicativeExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit multiplicative expressions
+                var multiplicativeObj = EmitMultiplicativeExpression(multiplicativeExpression.multiplicativeExpression());
+
+                multiplicativeObj.Load();
+                returnObjectDef.Load();
+
+                if (multiplicativeExpression.Star() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Mul);
+                }
+                else if (multiplicativeExpression.Div() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Div);
+                }
+                else if (multiplicativeExpression.Mod() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Rem);
+                }
+                
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
