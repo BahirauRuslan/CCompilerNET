@@ -8,30 +8,37 @@ namespace CCompiler
     {
         public static void Main(string[] args)
         {
+            BaseApp baseApp;
+
             try
             {
                 ValidateArgs(args);
 
-                var fileName = args[0];
-                var compiler = new CCompiler(fileName);
+                if (args[0] == "-t")
+                {
+                    baseApp = new TelegramListenerApp(args[1]);
+                }
+                else
+                {
+                    baseApp = new ConsoleApp(args[0]);
+                }
 
-                compiler.Compile();
+                baseApp.Run();
 
-                Code.Code code = new Code.Code();
-                var num = code.func54();
-                var num2 = code.func1488();
-                var num3 = code.func7();
-                var bol4 = code.funcB();
+                //Code.Code code = new Code.Code();
+                //var num = code.func54();
+                //var num2 = code.func1488();
+                //var num3 = code.func7();
+                //var bol4 = code.funcB();
 
-                Console.WriteLine(num);
-                Console.WriteLine(num2);
-                Console.WriteLine(num3);
-                Console.WriteLine(bol4);
+                //Console.WriteLine(num);
+                //Console.WriteLine(num2);
+                //Console.WriteLine(num3);
+                //Console.WriteLine(bol4);
             }
             catch (Exception e)
             when (e is ArgumentNullException ||
-                  e is FileNotFoundException ||
-                  e is FormatException)
+                  e is FileNotFoundException)
             {
                 Console.WriteLine(e.Message);
             }
@@ -49,7 +56,12 @@ namespace CCompiler
                     nameof(args), "arguments not found");
             }
 
-            if (!File.Exists(args[0]))
+            if (args.Length == 1 && args[0] == "-t")
+            {
+                throw new ArgumentNullException("Telegram API token is missing");
+            }
+
+            if (args.Length == 1 && !File.Exists(args[0]))
             {
                 throw new FileNotFoundException(
                     $"File { args[0] } does not exists");

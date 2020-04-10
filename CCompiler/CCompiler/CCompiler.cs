@@ -11,9 +11,10 @@ namespace CCompiler
 {
     public class CCompiler
     {
+        private Stream _stream;
         private string _fileName;
 
-        public CCompiler(string fileName)
+        public CCompiler(Stream stream, string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
             {
@@ -24,13 +25,16 @@ namespace CCompiler
             {
                 throw new FormatException("Incorrect file extension");
             }
-            
+
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _fileName = fileName;
         }
 
+        public string OutputFileName { get; private set; } = null;
+
         public void Compile()
         {
-            using (var fileStream = new StreamReader(_fileName))
+            using (var fileStream = new StreamReader(_stream))
             {
                 var inputStream = new AntlrInputStream(fileStream);
                 var lexer = new CLexer(inputStream);
@@ -46,6 +50,11 @@ namespace CCompiler
                     var cilCodeGenerator = new CILCodeGenerator(preBuilder);
 
                     cilCodeGenerator.Generate();
+
+                    if (File.Exists(preBuilder.ProgramFileName))
+                    {
+                        OutputFileName = preBuilder.ProgramFileName;
+                    }
                 }
             }
         }
