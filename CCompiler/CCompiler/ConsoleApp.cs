@@ -5,16 +5,18 @@ namespace CCompiler
 {
     public class ConsoleApp : BaseApp
     {
+        private readonly string _fileName;
+
         public ConsoleApp(string fileName)
         {
-            FileName = fileName;
+            _fileName = fileName;
         }
 
         public override void Run()
         {
-            using (var stream = new FileStream(FileName, FileMode.Open))
+            using (var stream = new FileStream(_fileName, FileMode.Open))
             {
-                this.RunCompile(stream);
+                this.RunCompile(stream, _fileName);
             }
         }
     }

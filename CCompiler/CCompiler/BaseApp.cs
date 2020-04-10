@@ -5,15 +5,13 @@ namespace CCompiler
 {
     public abstract class BaseApp
     {
-        protected string FileName { get; set; }
-
-        protected string RunCompile(Stream stream)
+        protected string RunCompile(Stream stream, string fileName)
         {
             string result = null;
 
             try
             {
-                var compiler = new CCompiler(stream, FileName);
+                var compiler = new CCompiler(stream, fileName);
 
                 compiler.Compile();
 

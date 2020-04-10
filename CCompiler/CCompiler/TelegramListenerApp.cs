@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -16,9 +17,14 @@ namespace CCompiler
         private TelegramBotClient _client;
         private readonly string _token;
 
+        private HashSet<long> _chats;
+        private Dictionary<long, string> _fileNames;
+
         public TelegramListenerApp(string token)
         {
             _token = token;
+            _chats = new HashSet<long>();
+            _fileNames = new Dictionary<long, string>();
         }
 
         public override void Run()
@@ -36,27 +42,63 @@ namespace CCompiler
         {
             var message = messageEventArgs.Message;
 
-            if (message?.Type == MessageType.Text)
+            if (message?.Text != null &&
+                _chats.Contains(message.Chat.Id) &&
+                !_fileNames.ContainsKey(message.Chat.Id))
             {
-                ;
+                _fileNames.Add(message.Chat.Id, message.Text);
+
+                await _client.SendTextMessageAsync(message.Chat.Id,
+                    "Now send source code as text message");
             }
-            else if (message?.Type == MessageType.Document)
+            else if (message?.Text != null &&
+                _chats.Contains(message.Chat.Id) &&
+                _fileNames.ContainsKey(message.Chat.Id))
             {
-                FileName = message.Document.FileName;
-                var name = await CompileFile(message.Document.FileId);
+                var name = CompileSourceCode(message.Text, _fileNames[message.Chat.Id]);
                 SendResultMessage(message.Chat.Id, name);
+                ClearChatInfo(message.Chat.Id);
+            }
+            else if (message?.Type == MessageType.Document &&
+                _chats.Contains(message.Chat.Id))
+            {
+                var name = await CompileFile(message.Document.FileId, message.Document.FileName);
+                SendResultMessage(message.Chat.Id, name);
+                ClearChatInfo(message.Chat.Id);
+            }
+            else
+            {
+                _chats.Add(message.Chat.Id);
+                await _client.SendTextMessageAsync(message.Chat.Id,
+                    "Send file (extension .c) or file name like file.c");
             }
         }
 
-        private async Task<string> CompileFile(string fileId)
+        private string CompileSourceCode(string sourceCode, string fileName)
         {
             string outputFileName = null;
 
-            using (Stream stream = new MemoryStream())
+            using (var stream = new MemoryStream())
+            {
+                var writer = new StreamWriter(stream);
+                writer.Write(sourceCode);
+                writer.Flush();
+                stream.Position = 0;
+                outputFileName = RunCompile(stream, fileName);
+            }
+
+            return outputFileName;
+        }
+
+        private async Task<string> CompileFile(string fileId, string fileName)
+        {
+            string outputFileName = null;
+
+            using (var stream = new MemoryStream())
             {
                 var file = await _client.GetInfoAndDownloadFileAsync(fileId, stream);
                 stream.Position = 0;
-                outputFileName = RunCompile(stream);
+                outputFileName = RunCompile(stream, fileName);
             }
 
             return outputFileName;
@@ -76,6 +118,19 @@ namespace CCompiler
                     input.FileName = outputFileName;
                     await _client.SendDocumentAsync(chatId, input);
                 }
+            }
+        }
+
+        private void ClearChatInfo(long chatId)
+        {
+            if (_chats.Contains(chatId))
+            {
+                _chats.Remove(chatId);
+            }
+
+            if (_fileNames.ContainsKey(chatId))
+            {
+                _fileNames.Remove(chatId);
             }
         }
     }
