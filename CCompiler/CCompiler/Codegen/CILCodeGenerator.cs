@@ -757,6 +757,10 @@ namespace CCompiler.Codegen
             {
                 returnObjectDef = EmitConstant(primaryExpression.Constant());
             }
+            else if (primaryExpression.expression() != null)
+            {
+                returnObjectDef = EmitExpression(primaryExpression.expression());
+            }
             else if (primaryExpression.StringLiteral() != null)
             {
                 ;
