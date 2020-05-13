@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CCompiler", "CCompiler\CCompiler.csproj", "{F1524363-50C4-4DE5-A22E-7493240473D4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckCompiledCodeModule", "CheckCompiledCodeModule\CheckCompiledCodeModule.csproj", "{2E72B1FB-C639-4E61-A0B2-9D90F01CBF7C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|anycpu = Debug|anycpu
@@ -13,5 +15,9 @@ Global
 		{F1524363-50C4-4DE5-A22E-7493240473D4}.Debug|anycpu.Build.0 = Debug|anycpu
 		{F1524363-50C4-4DE5-A22E-7493240473D4}.Release|anycpu.ActiveCfg = Release|anycpu
 		{F1524363-50C4-4DE5-A22E-7493240473D4}.Release|anycpu.Build.0 = Release|anycpu
+		{2E72B1FB-C639-4E61-A0B2-9D90F01CBF7C}.Debug|anycpu.ActiveCfg = Debug|anycpu
+		{2E72B1FB-C639-4E61-A0B2-9D90F01CBF7C}.Debug|anycpu.Build.0 = Debug|anycpu
+		{2E72B1FB-C639-4E61-A0B2-9D90F01CBF7C}.Release|anycpu.ActiveCfg = Release|anycpu
+		{2E72B1FB-C639-4E61-A0B2-9D90F01CBF7C}.Release|anycpu.Build.0 = Release|anycpu
 	EndGlobalSection
 EndGlobal

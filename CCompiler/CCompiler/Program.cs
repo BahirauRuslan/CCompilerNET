@@ -24,17 +24,6 @@ namespace CCompiler
                 }
 
                 baseApp.Run();
-
-                //Code.Code code = new Code.Code();
-                //var num = code.func54();
-                //var num2 = code.func1488();
-                //var num3 = code.func7();
-                //var bol4 = code.funcB();
-
-                //Console.WriteLine(num);
-                //Console.WriteLine(num2);
-                //Console.WriteLine(num3);
-                //Console.WriteLine(bol4);
             }
             catch (Exception e)
             when (e is ArgumentNullException ||

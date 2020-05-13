@@ -205,18 +205,18 @@ namespace CCompiler.Codegen
 
             if (compoundStatement.blockItemList() != null)
             {
-                var returnObjectDef = EmitCompoundStatement(compoundStatement);
+                /*var returnObjectDef =*/ EmitCompoundStatement(compoundStatement);
 
-                returnObjectDef.Load();
+                //returnObjectDef.Load();
 
                 if (_functions[functionName].MethodBuilder.ReturnType == typeof(void))
                 {
                     _generatorIL.Emit(OpCodes.Pop);
                 }
 
-                _generatorIL.Emit(OpCodes.Ret);
+                //_generatorIL.Emit(OpCodes.Ret);
 
-                returnObjectDef.Remove();
+                //returnObjectDef.Remove();
             }
             else
             {
@@ -256,7 +256,51 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitDeclaration(CParser.DeclarationContext declaration)
         {
-            return null;
+            ObjectDef returnObjectDef = null;
+
+            if (declaration.RBATypeSpecifier() != null &&
+                declaration.initDeclaratorList() != null)
+            {
+                returnObjectDef = EmitLocalVarDeclarations(
+                                      declaration.RBATypeSpecifier(),
+                                      declaration.initDeclaratorList().RBAInitDeclaratorStack());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitLocalVarDeclarations(CParser.TypeSpecifierContext typeSpecifier,
+            Stack<CParser.InitDeclaratorContext> initDeclarators)
+        {
+            Type type = typeSpecifier.RBAType(_moduleBuilder);
+            ObjectDef returnObjectDef = null;
+
+            while (initDeclarators.Count > 0)
+            {
+                returnObjectDef = EmitLocalVarDeclaration(type, initDeclarators.Pop());
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitLocalVarDeclaration(Type type, CParser.InitDeclaratorContext initDeclarator)
+        {
+            ObjectDef localObjDef = null;
+
+            var name = initDeclarator.declarator()?.directDeclarator()?.Identifier()?.ToString();
+
+            if (initDeclarator.Assign() != null)
+            {
+                localObjDef = EmitAssignmentExpression(initDeclarator.initializer()?.assignmentExpression());
+            }
+            else
+            {
+                localObjDef = EmitDefaultValue(type);
+            }
+
+            localObjDef.Load();
+
+            return LocalObjectDef.AllocateLocal(type, name);
         }
 
         protected ObjectDef EmitStatement(CParser.StatementContext statement)
@@ -301,11 +345,99 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitSelectionStatement(CParser.SelectionStatementContext selectionStatement)
         {
+            ObjectDef returnObjectDef = null;
+
+            if (selectionStatement.If() != null &&
+                selectionStatement.expression() != null &&
+                selectionStatement.statement() != null &&
+                selectionStatement.statement().Length > 0)
+            {
+                returnObjectDef = EmitSelectionIfStatement(selectionStatement);
+            }
+
+            return returnObjectDef;
+        }
+
+        protected ObjectDef EmitSelectionIfStatement(CParser.SelectionStatementContext selectionStatement)
+        {
+            var checkObjectDef = EmitExpression(selectionStatement.expression());
+
+            checkObjectDef.Load();
+            checkObjectDef.Remove();
+
+            var exitLabel = _generatorIL.DefineLabel();
+            var elseLabel = _generatorIL.DefineLabel();
+
+            _generatorIL.Emit(OpCodes.Brfalse, elseLabel);
+
+            EmitStatement(selectionStatement.statement()[0]);
+
+            _generatorIL.Emit(OpCodes.Br, exitLabel);
+            _generatorIL.MarkLabel(elseLabel);
+
+            if (selectionStatement.Else() != null &&
+                selectionStatement.statement().Length == 2)
+            {
+                EmitStatement(selectionStatement.statement()[1]);
+            }
+
+            _generatorIL.MarkLabel(exitLabel);
+            _generatorIL.Emit(OpCodes.Nop);
+
             return null;
         }
 
         protected ObjectDef EmitIterationStatement(CParser.IterationStatementContext iterationStatement)
         {
+            if (iterationStatement.While() != null)
+            {
+                if (iterationStatement.Do() != null)
+                {
+                    EmitDoWhileIterationStatement(iterationStatement);
+                }
+                else
+                {
+                    EmitWhileIterationStatement(iterationStatement);
+                }
+            }
+
+            return null;
+        }
+
+        protected ObjectDef EmitWhileIterationStatement(CParser.IterationStatementContext iterationStatement)
+        {
+            var checkLabel = _generatorIL.DefineLabel();
+            var exitLabel = _generatorIL.DefineLabel();
+
+            _generatorIL.MarkLabel(checkLabel);
+
+            var checkObjectDef = EmitExpression(iterationStatement.expression());
+
+            checkObjectDef.Load();
+            checkObjectDef.Remove();
+            _generatorIL.Emit(OpCodes.Brfalse, exitLabel);
+            EmitStatement(iterationStatement.statement());
+            _generatorIL.Emit(OpCodes.Br, checkLabel);
+            _generatorIL.MarkLabel(exitLabel);
+            _generatorIL.Emit(OpCodes.Nop);
+
+            return null;
+        }
+
+        protected ObjectDef EmitDoWhileIterationStatement(CParser.IterationStatementContext iterationStatement)
+        {
+            var repeatLabel = _generatorIL.DefineLabel();
+
+            _generatorIL.MarkLabel(repeatLabel);
+            EmitStatement(iterationStatement.statement());
+
+            var checkObjectDef = EmitExpression(iterationStatement.expression());
+
+            checkObjectDef.Load();
+            checkObjectDef.Remove();
+
+            _generatorIL.Emit(OpCodes.Brtrue, repeatLabel);
+
             return null;
         }
 
@@ -316,6 +448,10 @@ namespace CCompiler.Codegen
             if (jumpStatement.expression() != null && jumpStatement.Return() != null)
             {
                 returnObjectDef = EmitExpression(jumpStatement.expression());
+                /////
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Ret);
+                returnObjectDef.Remove();
             }
 
             return returnObjectDef;
@@ -337,15 +473,28 @@ namespace CCompiler.Codegen
 
         protected ObjectDef EmitAssignmentExpression(CParser.AssignmentExpressionContext assignmentExpression)
         {
-            ObjectDef returnObjectDef;
+            ObjectDef returnObjectDef = null;
 
             if (assignmentExpression.conditionalExpression() != null)
             {
                 returnObjectDef = EmitConditionalExpression(assignmentExpression.conditionalExpression());
             }
-            else
+            else if (assignmentExpression.unaryExpression() != null &&
+                assignmentExpression.assignmentExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit assignment expressions
+                var identifier = assignmentExpression.unaryExpression()
+                    ?.postfixExpression()
+                    ?.primaryExpression()
+                    ?.Identifier();
+                var localVar = LocalObjectDef.GetLocalObjectDef(identifier.ToString());
+
+                EmitUnaryExpression(assignmentExpression.unaryExpression());
+
+                var assignmentObjDef = EmitAssignmentExpression(assignmentExpression.assignmentExpression());
+
+                assignmentObjDef.Load();
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(localVar.Type, localVar.Name); // TODO: Emit assignment expressions
             }
 
             return returnObjectDef;
@@ -751,7 +900,7 @@ namespace CCompiler.Codegen
 
             if (primaryExpression.Identifier() != null)
             {
-                ;   // TODO: load from identifier
+                returnObjectDef = LocalObjectDef.GetLocalObjectDef(primaryExpression.Identifier().ToString());   // TODO: load from identifier
             }
             else if (primaryExpression.Constant() != null)
             {
@@ -812,6 +961,32 @@ namespace CCompiler.Codegen
         protected ObjectDef EmitVoid(ITree expressionNode)
         {
             var result = new ValueObjectDef(typeof(Nullable), null);
+            return result;
+        }
+
+        protected static ValueObjectDef EmitDefaultValue(Type type)
+        {
+            object value;
+
+            if (type == typeof(bool))
+            {
+                value = false;
+            }
+            else if (type == typeof(int))
+            {
+                value = 0;
+            }
+            else if (type == typeof(string))
+            {
+                value = "";
+            }
+            else
+            {
+                value = null;
+            }
+
+            var result = new ValueObjectDef(type, value);
+
             return result;
         }
 
