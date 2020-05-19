@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection.Emit;
 
 namespace CCompiler.ObjectDefinitions
@@ -28,9 +25,21 @@ namespace CCompiler.ObjectDefinitions
 
 		public override void Load()
 		{
-			if (Type == typeof(int))
+			if (Type == typeof(short) || Type == typeof(int) || Type == typeof(char))
 			{
 				EmitInteger((int)value);
+			}
+            else if (Type == typeof(long))
+            {
+				iLGenerator.Emit(OpCodes.Ldc_I8, (long)value);
+            }
+            else if (Type == typeof(float))
+            {
+				iLGenerator.Emit(OpCodes.Ldc_R4, (float)value);
+			}
+            else if (Type == typeof(double))
+            {
+				iLGenerator.Emit(OpCodes.Ldc_R8, (double)value);
 			}
 			else if (Type == typeof(bool))
 			{
