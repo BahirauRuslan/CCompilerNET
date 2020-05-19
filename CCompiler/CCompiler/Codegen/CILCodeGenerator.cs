@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Threading.Tasks;
-using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using CCompiler.Extensions;
 using CCompiler.ObjectDefinitions;
@@ -31,6 +27,7 @@ namespace CCompiler.Codegen
         private ILGenerator _generatorIL;
 
         private Dictionary<string, MethodDef> _functions = new Dictionary<string, MethodDef>();
+        protected Dictionary<string, MethodArgDef> _currentArgs;
 
         private CParser.CompilationUnitContext _compilationUnit;
 
@@ -151,20 +148,20 @@ namespace CCompiler.Codegen
                 { "this", new MethodArgDef(_programClass, 0, "this") }
             };
 
-            if (parameters != null)
+            if (parameters != null && parameters.parameterList() != null)
             {
-                //var parametersStack
-                //= new Stack<CParser.ExternalDeclarationContext>();
+                var k = 0;
+                var parametersStack = parameters.parameterList().RBAParameterDeclarationStack();
+                inputTypes = new Type[parametersStack.Count];
 
-                //parameters.
-                //var functionListNode = treeNode.GetChild(3);
-                //inputTypes = new Type[functionListNode.ChildCount];
-                //for (int k = 0; k < functionListNode.ChildCount; k++)
-                //{
-                //    inputTypes[k] = GetType(functionListNode.GetChild(k).GetChild(1).Text);
-                //    var argName = functionListNode.GetChild(k).GetChild(0).Text;
-                //    args.Add(argName, new ArgObjectDef(inputTypes[k], k + 1, argName));
-                //}
+                while (parametersStack.Count > 0)
+                {
+                    var parameterDeclaration = parametersStack.Pop();
+                    inputTypes[k] = parameterDeclaration.RBATypeSpecifier().RBAType(_moduleBuilder);
+                    var argName = parameterDeclaration.RBAIdentifier().ToString();
+                    args.Add(argName, new MethodArgDef(inputTypes[k], k + 1, argName));
+                    k++;
+                }
             }
             else
             {
@@ -198,25 +195,19 @@ namespace CCompiler.Codegen
         {
             var functionName = identifier.ToString();
 
-            //CurrentArgs_ = Functions_[CurrentTypeBuilder_.Name][functionName].Args;
+            _currentArgs = _functions[functionName].Args;
             _generatorIL = _functions[functionName].MethodBuilder.GetILGenerator();
 
             LocalObjectDef.InitGenerator(_generatorIL);
 
             if (compoundStatement.blockItemList() != null)
             {
-                /*var returnObjectDef =*/ EmitCompoundStatement(compoundStatement);
-
-                //returnObjectDef.Load();
+                EmitCompoundStatement(compoundStatement);
 
                 if (_functions[functionName].MethodBuilder.ReturnType == typeof(void))
                 {
                     _generatorIL.Emit(OpCodes.Pop);
                 }
-
-                //_generatorIL.Emit(OpCodes.Ret);
-
-                //returnObjectDef.Remove();
             }
             else
             {
@@ -448,7 +439,7 @@ namespace CCompiler.Codegen
             if (jumpStatement.expression() != null && jumpStatement.Return() != null)
             {
                 returnObjectDef = EmitExpression(jumpStatement.expression());
-                /////
+                
                 returnObjectDef.Load();
                 _generatorIL.Emit(OpCodes.Ret);
                 returnObjectDef.Remove();
@@ -492,9 +483,58 @@ namespace CCompiler.Codegen
 
                 var assignmentObjDef = EmitAssignmentExpression(assignmentExpression.assignmentExpression());
 
-                assignmentObjDef.Load();
+                if (assignmentExpression.assignmentOperator().Assign() != null)
+                {
+                    assignmentObjDef.Load();
+                }
+                else
+                {
+                    localVar.Load();
+                    assignmentObjDef.Load();
 
-                returnObjectDef = LocalObjectDef.AllocateLocal(localVar.Type, localVar.Name); // TODO: Emit assignment expressions
+                    if (assignmentExpression.assignmentOperator().StarAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Mul);
+                    }
+                    else if (assignmentExpression.assignmentOperator().DivAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Div);
+                    }
+                    else if (assignmentExpression.assignmentOperator().ModAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Rem);
+                    }
+                    else if (assignmentExpression.assignmentOperator().PlusAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Add);
+                    }
+                    else if (assignmentExpression.assignmentOperator().MinusAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Sub);
+                    }
+                    else if (assignmentExpression.assignmentOperator().LeftShiftAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Shl);
+                    }
+                    else if (assignmentExpression.assignmentOperator().RightShiftAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Shr);
+                    }
+                    else if (assignmentExpression.assignmentOperator().AndAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.And);
+                    }
+                    else if (assignmentExpression.assignmentOperator().XorAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Xor);
+                    }
+                    else if (assignmentExpression.assignmentOperator().OrAssign() != null)
+                    {
+                        _generatorIL.Emit(OpCodes.Or);
+                    }
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(localVar.Type, localVar.Name);
             }
 
             return returnObjectDef;
@@ -513,7 +553,28 @@ namespace CCompiler.Codegen
                 conditionalExpression.expression() != null &&
                 conditionalExpression.conditionalExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit conditional expression
+                returnObjectDef.Load();
+                returnObjectDef.Remove();
+
+                var exitLabel = _generatorIL.DefineLabel();
+                var elseLabel = _generatorIL.DefineLabel();
+
+                _generatorIL.Emit(OpCodes.Brfalse, elseLabel);
+
+                var expObj = EmitExpression(conditionalExpression.expression());
+
+                expObj.Load();
+                expObj.Remove();
+                _generatorIL.Emit(OpCodes.Br, exitLabel);
+                _generatorIL.MarkLabel(elseLabel);
+
+                var condExp = EmitConditionalExpression(conditionalExpression.conditionalExpression());
+
+                condExp.Load();
+                condExp.Remove();
+                _generatorIL.MarkLabel(exitLabel);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(expObj.Type);
             }
 
             return returnObjectDef;
@@ -531,7 +592,13 @@ namespace CCompiler.Codegen
             if (logicalOrExpression.logicalAndExpression() != null &&
                 logicalOrExpression.logicalOrExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit logical 'OR' expression
+                var orObj = EmitLogicalOrExpression(logicalOrExpression.logicalOrExpression());
+
+                orObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.Or);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -549,7 +616,13 @@ namespace CCompiler.Codegen
             if (logicalAndExpression.inclusiveOrExpression() != null &&
                 logicalAndExpression.logicalAndExpression() != null)
             {
-                returnObjectDef = null; // TODO: Emit logical 'AND' expression
+                var andObj = EmitLogicalAndExpression(logicalAndExpression.logicalAndExpression());
+
+                andObj.Load();
+                returnObjectDef.Load();
+                _generatorIL.Emit(OpCodes.And);
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -854,10 +927,6 @@ namespace CCompiler.Codegen
             {
                 returnObjectDef = EmitUnaryExpression(castExpression.unaryExpression());
             }
-            else
-            {
-                returnObjectDef = null; // Skip cast expression
-            }
 
             return returnObjectDef;
         }
@@ -870,9 +939,24 @@ namespace CCompiler.Codegen
             {
                 returnObjectDef = EmitPostfixExpression(unaryExpression.postfixExpression());
             }
-            else
+            else if (unaryExpression.unaryOperator() != null)
             {
-                returnObjectDef = null; // Skip unary expressions
+                returnObjectDef = EmitCastExpression(unaryExpression.castExpression());
+
+                returnObjectDef.Load();
+
+                if (unaryExpression.unaryOperator().Minus() != null)
+                {
+                    new ValueObjectDef(typeof(int), -1).Load();
+                    _generatorIL.Emit(OpCodes.Mul);
+                }
+                else if (unaryExpression.unaryOperator().Tilde() != null
+                    || unaryExpression.unaryOperator().Not() != null)
+                {
+                    _generatorIL.Emit(OpCodes.Not);
+                }
+
+                returnObjectDef = LocalObjectDef.AllocateLocal(typeof(int));
             }
 
             return returnObjectDef;
@@ -886,10 +970,6 @@ namespace CCompiler.Codegen
             {
                 returnObjectDef = EmitPrimaryExpression(postfixExpression.primaryExpression());
             }
-            else
-            {
-                returnObjectDef = null; // Skip postfix expressions
-            }
 
             return returnObjectDef;
         }
@@ -900,7 +980,16 @@ namespace CCompiler.Codegen
 
             if (primaryExpression.Identifier() != null)
             {
-                returnObjectDef = LocalObjectDef.GetLocalObjectDef(primaryExpression.Identifier().ToString());   // TODO: load from identifier
+                var name = primaryExpression.Identifier().ToString();
+
+                if (_currentArgs.ContainsKey(name))
+                {
+                    returnObjectDef = _currentArgs[name];
+                }
+                else
+                {
+                    returnObjectDef = LocalObjectDef.GetLocalObjectDef(name);
+                }
             }
             else if (primaryExpression.Constant() != null)
             {
@@ -910,11 +999,7 @@ namespace CCompiler.Codegen
             {
                 returnObjectDef = EmitExpression(primaryExpression.expression());
             }
-            else if (primaryExpression.StringLiteral() != null)
-            {
-                ;
-            }
-
+            
             return returnObjectDef;
         }
 
@@ -972,9 +1057,23 @@ namespace CCompiler.Codegen
             {
                 value = false;
             }
-            else if (type == typeof(int))
+            else if (type == typeof(int)
+                || type == typeof(short)
+                || type == typeof(long))
             {
                 value = 0;
+            }
+            else if (type == typeof(char))
+            {
+                value = '\x0000';
+            }
+            else if (type == typeof(float))
+            {
+                value = 0.0f;
+            }
+            else if (type == typeof(double))
+            {
+                value = 0.0d;
             }
             else if (type == typeof(string))
             {
