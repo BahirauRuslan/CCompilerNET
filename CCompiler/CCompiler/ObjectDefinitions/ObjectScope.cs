@@ -4,7 +4,6 @@
     {
         Value,
         Local,
-        Argument,
-        Field
+        Argument
     }
 }
