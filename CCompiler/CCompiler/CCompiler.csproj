@@ -66,6 +66,8 @@
     <Compile Include="TelegramListenerApp.cs" />
     <Compile Include="Extensions\DeclarationExtension.cs" />
     <Compile Include="Extensions\InitDeclaratorListExtension.cs" />
+    <Compile Include="Extensions\ParameterListExtension.cs" />
+    <Compile Include="Extensions\ParameterDeclarationExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="C.g4" />
