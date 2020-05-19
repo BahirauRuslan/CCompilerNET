@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using Antlr4.Runtime;
 
 namespace CCompiler
 {
