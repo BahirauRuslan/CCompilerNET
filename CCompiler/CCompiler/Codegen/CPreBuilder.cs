@@ -1,13 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
-using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
 using CCompiler.Extensions;
 
 namespace CCompiler.Codegen
@@ -70,10 +62,6 @@ namespace CCompiler.Codegen
             {
                 AnalyzeFunctionDefinition(functionDefinition);
             }
-            else if (declaration != null)
-            {
-                AnalyzeDeclaration(declaration);
-            }
         }
 
         private void AnalyzeFunctionDefinition(
@@ -85,11 +73,6 @@ namespace CCompiler.Codegen
             {
                 HasEntryPoint = true;
             }
-        }
-
-        private void AnalyzeDeclaration(
-            CParser.DeclarationContext declaration)
-        {
         }
     }
 }
